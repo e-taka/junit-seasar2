@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivysettings>
+  <settings defaultResolver="default" />
+  <include url="${ivy.default.settings.dir}/ivysettings-public.xml"/>
+  <include url="ivysettings-seasar.xml"/>
+  <include url="${ivy.default.settings.dir}/ivysettings-shared.xml"/>
+  <include url="${ivy.default.settings.dir}/ivysettings-local.xml"/>
+  <resolvers>
+    <chain name="main" dual="true">
+      <resolver ref="shared"/>
+      <resolver ref="public"/>
+      <resolver ref="seasar.org"/>
+    </chain>
+  </resolvers>
+  <include url="${ivy.default.settings.dir}/ivysettings-default-chain.xml"/>
+</ivysettings>
