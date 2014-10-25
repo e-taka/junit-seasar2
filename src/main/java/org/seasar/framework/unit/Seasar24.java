@@ -1,23 +1,7 @@
-/*
- * Copyright 2004-2013 the Seasar Foundation and the Others.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- */
 package org.seasar.framework.unit;
 
 import java.util.List;
 
-import org.junit.Rule;
 import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.internal.runners.statements.Fail;
 import org.junit.rules.RunRules;
@@ -41,10 +25,14 @@ import org.junit.runners.model.Statement;
  *
  * </p>
  *
- * @author taedium
- *
  */
 public class Seasar24 extends BlockJUnit4ClassRunner {
+    /**
+     * テストクラス {@code klass} を実行するためのテストランナーを作成する.
+     *
+     * @param klass テストクラス
+     * @throws InitializationError テストクラスが不正だった場合
+     */
     public Seasar24(final Class<?> klass) throws InitializationError {
         super(klass);
     }
@@ -80,6 +68,9 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
      *
      * This can be overridden in subclasses, either by overriding this method,
      * or the implementations creating each sub-statement.
+     *
+     * @param method テストメソッド
+     * @return テストメソッドを実行する statement
      */
     @SuppressWarnings("deprecation")
     @Override
@@ -108,23 +99,65 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         return statement;
     }
 
-    private Statement withFieldsBinding(
-            final FrameworkMethod method, final Object target, final Statement statement) {
-        return new FieldsBindingRule(statement, target, getTestClass());
-    }
-
-    private Statement withContainer(
-            final FrameworkMethod method, final Object target, final Statement statement) {
-        return new ContainerRule(statement);
-    }
-
-    private Statement withContext(
-            final FrameworkMethod method, final Object target, final Statement statement) {
+    /**
+     * {@link org.seasar.framework.unit.TestContext} を作成し、
+     * テストクラスのフィールドにバインディングする.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return {@link org.seasar.framework.unit.TestContext} を作成する statement
+     */
+    protected Statement withContext(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
         return new TestContextRule(statement, target, getTestClass(), method);
     }
 
-    private Statement withRules(
-            final FrameworkMethod method, final Object target, final Statement statement) {
+    /**
+     * DI コンテナを作成する.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return DI コンテナを作成する statement
+     */
+    protected Statement withContainer(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
+        return new ContainerRule(statement);
+    }
+
+    /**
+     * テストクラスの各フィールドに、
+     * DI コンテナで管理されているオブジェクトをバインディングする.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return オブジェクトをバインディングする statement
+     */
+    protected Statement withFieldsBinding(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
+        return new FieldsBindingRule(statement, target, getTestClass());
+    }
+
+    /**
+     * フィールド変数で定義したルール、メソッドで定義したルールを実行する.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return ルールを実行する statement
+     */
+    protected Statement withRules(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
         List<TestRule> testRules = getTestRules(target);
         Statement result = statement;
         result = withMethodRules(method, testRules, target, result);
@@ -133,9 +166,21 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         return result;
     }
 
+    /**
+     * フィールド変数で定義したルールを実行する.
+     *
+     * @param method テストメソッド
+     * @param testRules ルール
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return メソッドレベルのルールを実行する statement
+     */
     private Statement withMethodRules(
-            final FrameworkMethod method, final List<TestRule> testRules,
-            final Object target, Statement result) {
+            final FrameworkMethod method,
+            final List<TestRule> testRules,
+            final Object target,
+            final Statement statement) {
+        Statement result = statement;
         for (org.junit.rules.MethodRule each : getMethodRules(target)) {
             if (!testRules.contains(each)) {
                 result = each.apply(result, method, target);
@@ -144,22 +189,34 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         return result;
     }
 
-    private List<org.junit.rules.MethodRule> getMethodRules(final Object target) {
+    /**
+     * フィールド変数のルールを取得する.
+     *
+     * @param target テストクラスのインスタンス
+     * @return ルール
+     */
+    private List<org.junit.rules.MethodRule>
+    getMethodRules(final Object target) {
         return rules(target);
     }
 
     /**
      * Returns a {@link Statement}: apply all non-static {@link Value} fields
-     * annotated with {@link Rule}.
+     * annotated with {@link org.junit.Rule}.
      *
+     * @param method テストメソッド
+     * @param testRules ルール
      * @param statement The base statement
-     * @return a RunRules statement if any class-level {@link Rule}s are
-     *         found, or the base statement
+     * @return a RunRules statement if any class-level {@link org.junit.Rule}s
+     *          are found, or the base statement
      */
     private Statement withTestRules(
             final FrameworkMethod method, final List<TestRule> testRules,
             final Statement statement) {
-        return testRules.isEmpty() ? statement :
-            new RunRules(statement, testRules, describeChild(method));
+        if (testRules.isEmpty()) {
+            return statement;
+        } else {
+            return new RunRules(statement, testRules, describeChild(method));
+        }
     }
 }

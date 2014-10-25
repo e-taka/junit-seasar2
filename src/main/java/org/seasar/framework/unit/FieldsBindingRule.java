@@ -11,7 +11,11 @@ import org.seasar.framework.util.StringUtil;
 import org.seasar.framework.util.tiger.CollectionsUtil;
 import org.seasar.framework.util.tiger.ReflectionUtil;
 
-public class FieldsBindingRule extends Statement {
+/**
+ * テスト実行前に、テストクラスの各フィールドに対して DI する.
+ */
+class FieldsBindingRule extends Statement {
+    /** 元の statement */
     private final Statement _statement;
 
     /** テストオブジェクト */
@@ -27,6 +31,13 @@ public class FieldsBindingRule extends Statement {
     /** バインディングが行われたフィールドのリスト */
     private List<Field> boundFields = CollectionsUtil.newArrayList();
 
+    /**
+     * テストクラスの各フィールドに DI する statement を作成する.
+     *
+     * @param statement 元の statement
+     * @param test      テストクラスのインスタンス
+     * @param testClass テストクラス
+     */
     public FieldsBindingRule(
             final Statement statement,
             final Object test, final TestClass testClass) {
@@ -49,7 +60,7 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * フィールドにコンポーネントをバインディングします。
+     * フィールドにコンポーネントをバインディングします.
      *
      * @throws Throwable
      *             何らかの例外またはエラーが発生した場合
@@ -72,7 +83,7 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * 指定されたフィールドにコンポーネントをバインディングします。
+     * 指定されたフィールドにコンポーネントをバインディングします.
      *
      * @param field
      *            フィールド
@@ -111,7 +122,7 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * 指定されたフィールドに指定された値をバインディングします。
+     * 指定されたフィールドに指定された値をバインディングします.
      *
      * @param field
      *            フィールド
@@ -124,11 +135,12 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * 自動フィールドバインディングが可能な場合<code>true</code>を返します。
+     * 自動フィールドバインディングが可能な場合<code>true</code>を返します.
      *
      * @param field
      *            フィールド
-     * @return 自動フィールドバインディングが可能な場合<code>true</code>、そうでない場合<code>false</code>
+     * @return 自動フィールドバインディングが可能な場合<code>true</code>、
+     *          そうでない場合<code>false</code>
      */
     protected boolean isAutoBindable(final Field field) {
         final int modifiers = field.getModifiers();
@@ -142,7 +154,7 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * フィールドからコンポーネントの名前を解決します。
+     * フィールドからコンポーネントの名前を解決します.
      *
      * @param filed
      *            フィールド
@@ -163,7 +175,7 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * コンポーネント名を正規化します。
+     * コンポーネント名を正規化します.
      *
      * @param name
      *            コンポーネント名
@@ -174,10 +186,10 @@ public class FieldsBindingRule extends Statement {
     }
 
     /**
-     * フィールドとコンポーネントのバインディングを解除します。
+     * フィールドとコンポーネントのバインディングを解除します.
      *
      * @throws Throwable
-     *
+     *             何らかの例外またはエラーが発生した場合
      */
     private void unbindFields() throws Throwable {
         List<Method> preUnbindFieldsMethods =

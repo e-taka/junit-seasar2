@@ -18,12 +18,16 @@ import org.seasar.framework.util.DisposableUtil;
 import org.seasar.framework.util.StringUtil;
 import org.seasar.framework.util.tiger.ReflectionUtil;
 
-public class TestContextRule extends Statement {
+/**
+ * テスト実行前後で、{@link InternalTestContext} を作成する、削除する.
+ */
+class TestContextRule extends Statement {
     /** S2JUnit4のデフォルトの設定ファイルのパス */
     protected static final String DEFAULT_S2JUNIT4_PATH = "s2junit4.dicon";
     /** S2JUnit4の設定ファイルのパス */
     protected static String s2junit4Path = DEFAULT_S2JUNIT4_PATH;
 
+    /** 元の statement */
     private final Statement _statement;
 
     /** テストオブジェクト */
@@ -35,16 +39,26 @@ public class TestContextRule extends Statement {
 
     /** テストクラスのイントロスペクター */
     private final S2TestIntrospector _introspector;
-    /** {@link #_unitClassLoader テストで使用するクラスローダー}で置き換えられる前のオリジナルのクラスローダー */
+    /** オリジナルのクラスローダー */
     private ClassLoader _originalClassLoader;
     /** テストで使用するクラスローダー */
     private UnitClassLoader _unitClassLoader;
     /** S2JUnit4の内部的なテストコンテキスト */
     private InternalTestContext _testContext;
 
+    /**
+     * {@link InternalTestContext} を作成、削除する statement を作成する.
+     *
+     * @param statement 元の statement
+     * @param target テストクラスのインスタンス
+     * @param clazz テストクラス
+     * @param method テストメソッド
+     */
     public TestContextRule(
-    		final Statement statement,
-    		final Object target, final TestClass clazz, final FrameworkMethod method) {
+            final Statement statement,
+            final Object target,
+            final TestClass clazz,
+            final FrameworkMethod method) {
         _introspector = ConventionIntrospectorRepository.get();
         _statement = statement;
         _test = target;
@@ -63,7 +77,7 @@ public class TestContextRule extends Statement {
     }
 
     /**
-     * テストコンテキストをセットアップします。
+     * テストコンテキストをセットアップします.
      *
      * @throws Throwable
      *             何らかの例外またはエラーが起きた場合
@@ -75,43 +89,74 @@ public class TestContextRule extends Statement {
 //        if (needsWarmDeploy()) {
 //            S2ContainerFactory.configure("warmdeploy.dicon");
 //        }
-        final S2Container container = createRootContainer();
+
+        S2Container container = createRootContainer();
         SingletonS2ContainerFactory.setContainer(container);
-        _testContext = InternalTestContext.class.cast(container
-                .getComponent(InternalTestContext.class));
+
+        _testContext =
+                InternalTestContext.class.cast(
+                        container.getComponent(InternalTestContext.class));
         _testContext.setTestClass(_testClass);
         _testContext.setTestMethod(_method);
-        if (!_testContext.hasComponentDef(NamingConvention.class)
-                && _introspector.isRegisterNamingConvention(_testClass, _method)) {
-            final NamingConvention namingConvention = new NamingConventionImpl();
+
+        if (_testContext.hasComponentDef(NamingConvention.class)) {
+            ;
+        } else if (isRegisterNamingConvention(_testClass, _method)) {
+            NamingConvention namingConvention = new NamingConventionImpl();
             _testContext.register(namingConvention);
             _testContext.setNamingConvention(namingConvention);
         }
+
         TestContextRepository.put(_testContext);
-
-        for (Class<?> clazz = _testClass; clazz != Object.class; clazz = clazz
-                .getSuperclass()) {
-
-        	final Field[] fields = clazz.getDeclaredFields();
-            for (int i = 0; i < fields.length; ++i) {
-                final Field field = fields[i];
-                final Class<?> fieldClass = field.getType();
-                if (isAutoBindable(field)
-                        && fieldClass.isAssignableFrom(_testContext.getClass())
-                        && fieldClass
-                                .isAnnotationPresent(PublishedTestContext.class)) {
-                    field.setAccessible(true);
-                    if (ReflectionUtil.getValue(field, _test) != null) {
-                        continue;
-                    }
-                    bindField(field, _testContext);
-                }
-            }
-        }
+        bindTestContext(_testClass);
     }
 
     /**
-     * オリジナルのクラスローダーを返します。
+     * {@link NamingConvention} を登録しているか否かを返す.
+     *
+     * @param clazz  テストクラス
+     * @param method テストメソッド
+     * @return 登録している場合、{@code true}
+     */
+    private boolean isRegisterNamingConvention(
+            final Class<?> clazz, final Method method) {
+        return _introspector.isRegisterNamingConvention(clazz, method);
+    }
+
+    /**
+     * テストクラスのインスタンスにj {@link InternalTestContext} をバインディングする.
+     *
+     * @param clazz テストクラス
+     */
+    private void bindTestContext(final Class<?> clazz) {
+        if (Object.class.equals(clazz)) {
+            return;
+        }
+
+        for (final Field field : clazz.getDeclaredFields()) {
+            final Class<?> fieldClass = field.getType();
+            if (!isAutoBindable(field)) {
+                continue;
+            }
+            if (!fieldClass.isAssignableFrom(_testContext.getClass())) {
+                continue;
+            }
+            if (!fieldClass.isAnnotationPresent(PublishedTestContext.class)) {
+                continue;
+            }
+
+            field.setAccessible(true);
+            if (ReflectionUtil.getValue(field, _test) != null) {
+                continue;
+            }
+            bindField(field, _testContext);
+        }
+
+        bindTestContext(clazz.getSuperclass());
+    }
+
+    /**
+     * オリジナルのクラスローダーを返します.
      *
      * @return オリジナルのクラスローダー
      */
@@ -127,12 +172,12 @@ public class TestContextRule extends Statement {
     }
 
     /**
-     * ルートのコンテナを返します。
+     * ルートのコンテナを返します.
      *
      * @return ルートのコンテナ
      */
     protected S2Container createRootContainer() {
-        final String rootDicon = _introspector.getRootDicon(_testClass, _method);
+        String rootDicon = _introspector.getRootDicon(_testClass, _method);
         if (StringUtil.isEmpty(rootDicon)) {
             return S2ContainerFactory.create(s2junit4Path);
         }
@@ -143,7 +188,7 @@ public class TestContextRule extends Statement {
     }
 
     /**
-     * テストコンテキストを解放します。
+     * テストコンテキストを解放します.
      *
      * @throws Throwable
      *             何らかの例外またはエラーが起きた場合
@@ -160,7 +205,7 @@ public class TestContextRule extends Statement {
     }
 
     /**
-     * 自動フィールドバインディングが可能な場合<code>true</code>を返します。
+     * 自動フィールドバインディングが可能な場合<code>true</code>を返します.
      *
      * @param field
      *            フィールド
@@ -173,7 +218,7 @@ public class TestContextRule extends Statement {
     }
 
     /**
-     * 指定されたフィールドに指定された値をバインディングします。
+     * 指定されたフィールドに指定された値をバインディングします.
      *
      * @param field
      *            フィールド

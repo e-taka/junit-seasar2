@@ -2,10 +2,20 @@ package org.seasar.framework.unit;
 
 import org.junit.runners.model.Statement;
 
-public class ContainerRule extends Statement {
+/**
+ * テスト実行前後で、DI コンテナを初期化、廃棄する.
+ */
+class ContainerRule extends Statement {
+    /** 元の statement */
     private final Statement _statement;
-    private InternalTestContext testContext = null;
+    /** S2JUnit4の内部的なテストコンテキスト */
+    private InternalTestContext _testContext = null;
 
+    /**
+     * DI コンテナを初期化、廃棄する statement を作成する.
+     *
+     * @param statement 元の statement
+     */
     public ContainerRule(final Statement statement) {
         _statement = statement;
     }
@@ -16,23 +26,23 @@ public class ContainerRule extends Statement {
         try {
             _statement.evaluate();
         } finally {
-            if (testContext != null) {
-                testContext.destroyContainer();
+            if (_testContext != null) {
+                _testContext.destroyContainer();
             }
         }
     }
 
     /**
-     * コンテナを初期化します。
+     * コンテナを初期化します.
      */
     protected void initContainer() {
-        testContext = TestContextRepository.get();
-        if (testContext == null) {
+        _testContext = TestContextRepository.get();
+        if (_testContext == null) {
             return;
         }
 
-        testContext.include();
+        _testContext.include();
 //        introspector.createMock(method, test, testContext);
-        testContext.initContainer();
+        _testContext.initContainer();
     }
 }
