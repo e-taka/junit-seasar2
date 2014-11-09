@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<ivysettings>
-  <resolvers>
-    <ibiblio name="seasar.org" m2compatible="true" root="http://maven.seasar.org/maven2/" />
-  </resolvers>
-</ivysettings>

@@ -1,0 +1,27 @@
+apply plugin: 'java'
+
+version = '0.1.0'
+sourceCompatibility = 1.7
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'JUnit Seasar2 Runner',
+                   'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "http://maven.seasar.org/maven2/"
+    }
+}
+
+dependencies {
+    compile "junit:junit:4.11"
+    compile "org.seasar.container:s2-framework:2.4.47"
+    compile "org.seasar.container:s2-extension:2.4.47"
+    compile "org.seasar.container:s2-tiger:2.4.47"
+    testRuntime "javax.servlet:javax.servlet-api:3.1.0"
+    testRuntime "javax.transaction:jta:1.1"
+}
