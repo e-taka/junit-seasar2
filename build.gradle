@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        maven { url 'http://repo.spring.io/plugins-release' }
+    }
+    dependencies {
+        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.6'
+    }
+}
+
+apply plugin: 'propdeps'
 apply plugin: 'java'
 
 version = '0.1.0'
@@ -22,6 +32,10 @@ dependencies {
     compile "org.seasar.container:s2-framework:2.4.47"
     compile "org.seasar.container:s2-extension:2.4.47"
     compile "org.seasar.container:s2-tiger:2.4.47"
+    provided "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0"
+    provided "org.apache.geronimo.specs:geronimo-ejb_3.0_spec:1.0"
+    provided "org.apache.geronimo.specs:geronimo-interceptor_3.0_spec:1.0"
+    provided "org.apache.geronimo.specs:geronimo-jpa_3.0_spec:1.0"
     testRuntime "javax.servlet:javax.servlet-api:3.1.0"
     testRuntime "javax.transaction:jta:1.1"
 }

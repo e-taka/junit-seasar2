@@ -88,6 +88,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         }
 
         Statement statement = methodInvoker(method, test);
+        statement = withTransaction(method, test, statement);
         statement = possiblyExpectingExceptions(method, test, statement);
         statement = withPotentialTimeout(method, test, statement);
         statement = withFieldsBinding(method, test, statement);
@@ -127,7 +128,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final FrameworkMethod method,
             final Object target,
             final Statement statement) {
-        return new ContainerRule(statement);
+        return new ContainerRule(statement, target, method);
     }
 
     /**
@@ -144,6 +145,21 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final Object target,
             final Statement statement) {
         return new FieldsBindingRule(statement, target, getTestClass());
+    }
+
+    /**
+     * トランザクションを開始し、コミットまたはロールバックする.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return オブジェクトをバインディングする statement
+     */
+    protected Statement withTransaction(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
+        return new TransactionManagerRule(statement, getTestClass(), method);
     }
 
     /**
@@ -201,7 +217,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
     }
 
     /**
-     * Returns a {@link Statement}: apply all non-static {@link Value} fields
+     * Returns a {@link Statement}: apply all non-static {@code Value} fields
      * annotated with {@link org.junit.Rule}.
      *
      * @param method テストメソッド

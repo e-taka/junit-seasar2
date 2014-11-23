@@ -5,6 +5,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 
+import javax.ejb.EJB;
+
 import org.junit.runners.model.Statement;
 import org.junit.runners.model.TestClass;
 import org.seasar.framework.util.StringUtil;
@@ -161,16 +163,16 @@ class FieldsBindingRule extends Statement {
      * @return コンポーネント名
      */
     private String resolveComponentName(final Field filed) {
-//        if (_testContext.isEjb3Enabled()) {
-//            final EJB ejb = filed.getAnnotation(EJB.class);
-//            if (ejb != null) {
-//                if (!StringUtil.isEmpty(ejb.beanName())) {
-//                    return ejb.beanName();
-//                } else if (!StringUtil.isEmpty(ejb.name())) {
-//                    return ejb.name();
-//                }
-//            }
-//        }
+        if (_testContext.isEjb3Enabled()) {
+            final EJB ejb = filed.getAnnotation(EJB.class);
+            if (ejb != null) {
+                if (!StringUtil.isEmpty(ejb.beanName())) {
+                    return ejb.beanName();
+                } else if (!StringUtil.isEmpty(ejb.name())) {
+                    return ejb.name();
+                }
+            }
+        }
         return normalizeName(filed.getName());
     }
 

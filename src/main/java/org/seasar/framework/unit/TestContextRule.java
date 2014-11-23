@@ -15,6 +15,7 @@ import org.seasar.framework.convention.NamingConvention;
 import org.seasar.framework.convention.impl.NamingConventionImpl;
 import org.seasar.framework.unit.annotation.PublishedTestContext;
 import org.seasar.framework.util.DisposableUtil;
+import org.seasar.framework.util.ResourceUtil;
 import org.seasar.framework.util.StringUtil;
 import org.seasar.framework.util.tiger.ReflectionUtil;
 
@@ -25,7 +26,7 @@ class TestContextRule extends Statement {
     /** S2JUnit4のデフォルトの設定ファイルのパス */
     protected static final String DEFAULT_S2JUNIT4_PATH = "s2junit4.dicon";
     /** S2JUnit4の設定ファイルのパス */
-    protected static String s2junit4Path = DEFAULT_S2JUNIT4_PATH;
+    protected static String _s2junit4Path = DEFAULT_S2JUNIT4_PATH;
 
     /** 元の statement */
     private final Statement _statement;
@@ -86,9 +87,9 @@ class TestContextRule extends Statement {
         _originalClassLoader = getOriginalClassLoader();
         _unitClassLoader = new UnitClassLoader(_originalClassLoader);
         Thread.currentThread().setContextClassLoader(_unitClassLoader);
-//        if (needsWarmDeploy()) {
-//            S2ContainerFactory.configure("warmdeploy.dicon");
-//        }
+        if (needsWarmDeploy()) {
+            S2ContainerFactory.configure("warmdeploy.dicon");
+        }
 
         S2Container container = createRootContainer();
         SingletonS2ContainerFactory.setContainer(container);
@@ -179,10 +180,10 @@ class TestContextRule extends Statement {
     protected S2Container createRootContainer() {
         String rootDicon = _introspector.getRootDicon(_testClass, _method);
         if (StringUtil.isEmpty(rootDicon)) {
-            return S2ContainerFactory.create(s2junit4Path);
+            return S2ContainerFactory.create(_s2junit4Path);
         }
         S2Container container = S2ContainerFactory.create(rootDicon);
-        S2ContainerFactory.include(container, s2junit4Path);
+        S2ContainerFactory.include(container, _s2junit4Path);
         return container;
 
     }
@@ -227,5 +228,18 @@ class TestContextRule extends Statement {
      */
     protected void bindField(final Field field, final Object object) {
         ReflectionUtil.setValue(field, _test, object);
+    }
+
+    /**
+     * WARM deployが必要とされる場合{@code true}を返します.
+     *
+     * @return WARM deployが必要とされる場合{@code true}、そうでない場合{@code false}
+     */
+    protected boolean needsWarmDeploy() {
+        return _introspector.needsWarmDeploy(_testClass, _method)
+                && !ResourceUtil.isExist("s2container.dicon")
+                && ResourceUtil.isExist("convention.dicon")
+                && ResourceUtil.isExist("creator.dicon")
+                && ResourceUtil.isExist("customizer.dicon");
     }
 }
