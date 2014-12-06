@@ -6,6 +6,7 @@ import org.junit.internal.runners.model.ReflectiveCallable;
 import org.junit.internal.runners.statements.Fail;
 import org.junit.rules.RunRules;
 import org.junit.rules.TestRule;
+import org.junit.runner.notification.RunNotifier;
 import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
@@ -37,41 +38,23 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         super(klass);
     }
 
+    @Override
+    protected Statement classBlock(final RunNotifier notifier) {
+        Statement statement = super.classBlock(notifier);
+        statement = withEnvironment(statement);
+        return statement;
+    }
+
     /**
-     * Returns a Statement that, when executed, either returns normally if
-     * {@code method} passes, or throws an exception if {@code method} fails.
+     * S2JUnit4 の振る舞いを設定する.
      *
-     * Here is an outline of the default implementation:
-     *
-     * <ul>
-     * <li>Invoke {@code method} on the result of {@code createTest()}, and
-     * throw any exceptions thrown by either operation.
-     * <li>HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code
-     * expecting} attribute, return normally only if the previous step threw an
-     * exception of the correct type, and throw an exception otherwise.
-     * <li>HOWEVER, if {@code method}'s {@code @Test} annotation has the {@code
-     * timeout} attribute, throw an exception if the previous step takes more
-     * than the specified number of milliseconds.
-     * <li>ALWAYS run all non-overridden {@code @Before} methods on this class
-     * and superclasses before any of the previous steps; if any throws an
-     * Exception, stop execution and pass the exception on.
-     * <li>ALWAYS run all non-overridden {@code @After} methods on this class
-     * and superclasses after any of the previous steps; all After methods are
-     * always executed: exceptions thrown by previous steps are combined, if
-     * necessary, with exceptions from After methods into a
-     * {@link MultipleFailureException}.
-     * <li>ALWAYS allow {@code @Rule} fields to modify the execution of the
-     * above steps. A {@code Rule} may prevent all execution of the above steps,
-     * or add additional behavior before and after, or modify thrown exceptions.
-     * For more information, see {@link TestRule}
-     * </ul>
-     *
-     * This can be overridden in subclasses, either by overriding this method,
-     * or the implementations creating each sub-statement.
-     *
-     * @param method テストメソッド
-     * @return テストメソッドを実行する statement
+     * @param statement 元の statement
+     * @return S2JUnit4 の振る舞いを設定する statement
      */
+    protected Statement withEnvironment(final Statement statement) {
+        return new EnvironmentRule(statement);
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     protected Statement methodBlock(final FrameworkMethod method) {
