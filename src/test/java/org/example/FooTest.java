@@ -1,5 +1,10 @@
 package org.example;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import java.util.Date;
 
 import org.junit.After;
@@ -57,6 +62,8 @@ public class FooTest {
     @After
     public void after() {
         System.out.println("After Method.");
+
+        assertThat(_now, is(nullValue()));
     }
 
     /**
@@ -67,7 +74,11 @@ public class FooTest {
         System.out.println("Test1.");
         System.out.printf("Test Name is %s%n", _name.getMethodName());
         System.out.println(_now);
+
+        assertThat(_now, is(notNullValue()));
+        assertThat(_name.getMethodName(), is("test1"));
     }
+
     /**
      * サンプルのテスト.
      */
@@ -76,5 +87,8 @@ public class FooTest {
         System.out.println("Test2.");
         System.out.printf("Test Name is %s%n", _name.getMethodName());
         System.out.println(_now);
+
+        assertThat(_now, is(notNullValue()));
+        assertThat(_name.getMethodName(), is("test2"));
     }
 }
