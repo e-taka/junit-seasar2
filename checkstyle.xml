@@ -59,6 +59,17 @@
     <module name="JavadocStyle">
       <property name="tokens" value="INTERFACE_DEF,CLASS_DEF,METHOD_DEF,CTOR_DEF"/>
     </module>
+    <module name="MemberName">
+      <property name="format" value="^_[a-z][a-zA-Z0-9]*$"/>
+    </module>
+    <module name="ConstantName"/>
+    <module name="LocalFinalVariableName"/>
+    <module name="LocalVariableName"/>
+    <module name="MethodName"/>
+    <module name="ParameterName"/>
+    <module name="StaticVariableName">
+      <property name="format" value="^_[a-z][a-zA-Z0-9]*$"/>
+    </module>
   </module>
   <module name="FileLength"/>
   <module name="FileTabCharacter"/>

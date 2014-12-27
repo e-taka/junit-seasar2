@@ -31,7 +31,7 @@ class FieldsBindingRule extends Statement {
     private InternalTestContext _testContext;
 
     /** バインディングが行われたフィールドのリスト */
-    private List<Field> boundFields = CollectionsUtil.newArrayList();
+    private List<Field> _boundFields = CollectionsUtil.newArrayList();
 
     /**
      * テストクラスの各フィールドに DI する statement を作成する.
@@ -133,7 +133,7 @@ class FieldsBindingRule extends Statement {
      */
     private void bindField(final Field field, final Object object) {
         ReflectionUtil.setValue(field, _test, object);
-        boundFields.add(field);
+        _boundFields.add(field);
     }
 
     /**
@@ -200,7 +200,7 @@ class FieldsBindingRule extends Statement {
             m.invoke(_test);
         }
 
-        for (final Field field : boundFields) {
+        for (final Field field : _boundFields) {
             try {
                 field.set(_test, null);
             } catch (IllegalArgumentException e) {
@@ -210,6 +210,6 @@ class FieldsBindingRule extends Statement {
             }
         }
 
-        boundFields.clear();
+        _boundFields.clear();
     }
 }
