@@ -21,7 +21,7 @@ import org.seasar.framework.util.tiger.ReflectionUtil;
 /**
  * テスト実行前後で、{@link InternalTestContext} を作成する、削除する.
  */
-class TestContextRule extends Statement {
+class TestContextStatement extends Statement {
     /** S2JUnit4のデフォルトの設定ファイルのパス */
     protected static final String DEFAULT_S2JUNIT4_PATH = "s2junit4.dicon";
     /** S2JUnit4の設定ファイルのパス */
@@ -56,7 +56,7 @@ class TestContextRule extends Statement {
      * @param clazz テストクラス
      * @param method テストメソッド
      */
-    public TestContextRule(
+    public TestContextStatement(
             final Statement statement,
             final Object target,
             final TestClass clazz,

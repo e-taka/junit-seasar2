@@ -52,7 +52,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
      * @return S2JUnit4 の振る舞いを設定する statement
      */
     protected Statement withEnvironment(final Statement statement) {
-        return new EnvironmentRule(statement);
+        return new EnvironmentStatement(statement);
     }
 
     @SuppressWarnings("deprecation")
@@ -96,7 +96,8 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final FrameworkMethod method,
             final Object target,
             final Statement statement) {
-        return new TestContextRule(statement, target, getTestClass(), method);
+        return new TestContextStatement(
+                statement, target, getTestClass(), method);
     }
 
     /**
@@ -111,7 +112,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final FrameworkMethod method,
             final Object target,
             final Statement statement) {
-        return new ContainerRule(statement, target, method);
+        return new ContainerStatement(statement, target, method);
     }
 
     /**
@@ -127,7 +128,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final FrameworkMethod method,
             final Object target,
             final Statement statement) {
-        return new FieldsBindingRule(statement, target, getTestClass());
+        return new FieldsBindingStatement(statement, target, getTestClass());
     }
 
     /**
@@ -142,7 +143,8 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
             final FrameworkMethod method,
             final Object target,
             final Statement statement) {
-        return new TransactionManagerRule(statement, getTestClass(), method);
+        return new TransactionManagerStatement(
+                statement, getTestClass(), method);
     }
 
     /**

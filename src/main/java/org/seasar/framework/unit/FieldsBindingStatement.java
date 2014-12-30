@@ -15,7 +15,7 @@ import org.seasar.framework.util.tiger.ReflectionUtil;
 /**
  * テスト実行前に、テストクラスの各フィールドに対して DI する.
  */
-class FieldsBindingRule extends Statement {
+class FieldsBindingStatement extends Statement {
     /** 元の statement */
     private final Statement _statement;
 
@@ -39,7 +39,7 @@ class FieldsBindingRule extends Statement {
      * @param test      テストクラスのインスタンス
      * @param testClass テストクラス
      */
-    public FieldsBindingRule(
+    public FieldsBindingStatement(
             final Statement statement,
             final Object test, final TestClass testClass) {
         _statement = statement;

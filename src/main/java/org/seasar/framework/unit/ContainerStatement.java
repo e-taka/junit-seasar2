@@ -9,7 +9,7 @@ import org.seasar.framework.unit.impl.ConventionTestIntrospector;
 /**
  * テスト実行前後で、DI コンテナを初期化、廃棄する.
  */
-class ContainerRule extends Statement {
+class ContainerStatement extends Statement {
     /** 元の statement */
     private final Statement _statement;
     /** S2JUnit4の内部的なテストコンテキスト */
@@ -27,7 +27,7 @@ class ContainerRule extends Statement {
      * @param target テストクラスのインスタンス
      * @param method テストメソッド
      */
-    public ContainerRule(
+    public ContainerStatement(
             final Statement statement,
             final Object target,
             final FrameworkMethod method) {

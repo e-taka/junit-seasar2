@@ -11,7 +11,7 @@ import org.junit.runners.model.TestClass;
 /**
  * {@link TransactionManager} でトランザクションの開始、ロールバックを実行する.
  */
-class TransactionManagerRule extends Statement {
+class TransactionManagerStatement extends Statement {
     /** 元の statement */
     private final Statement _statement;
 
@@ -33,7 +33,7 @@ class TransactionManagerRule extends Statement {
      * @param clazz テストクラス
      * @param method テストメソッド
      */
-    public TransactionManagerRule(
+    public TransactionManagerStatement(
             final Statement statement,
             final TestClass clazz,
             final FrameworkMethod method) {

@@ -10,7 +10,7 @@ import org.seasar.framework.util.ResourceUtil;
 /**
  * S2JUnit4 の振る舞いを設定する.
  */
-class EnvironmentRule extends Statement {
+class EnvironmentStatement extends Statement {
     /** 元の statement */
     private final Statement _statement;
 
@@ -22,7 +22,7 @@ class EnvironmentRule extends Statement {
      *
      * @param statement 元の statement
      */
-    public EnvironmentRule(final Statement statement) {
+    public EnvironmentStatement(final Statement statement) {
         _statement = statement;
     }
 
