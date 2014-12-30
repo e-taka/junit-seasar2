@@ -79,8 +79,19 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         statement = withBefores(method, test, statement);
         statement = withAfters(method, test, statement);
         statement = withContext(method, test, statement);
+        statement = withClassLoader(statement);
         statement = withRules(method, test, statement);
         return statement;
+    }
+
+    /**
+     * クラスローダーを作成、破棄する.
+     *
+     * @param statement 元のstatement
+     * @return クラスローダーを作成する statement
+     */
+    protected Statement withClassLoader(final Statement statement) {
+        return new ClassLoaderStatement(statement);
     }
 
     /**

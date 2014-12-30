@@ -39,12 +39,6 @@ class TestContextStatement extends Statement {
 
     /** テストクラスのイントロスペクター */
     private final S2TestIntrospector _introspector;
-
-    /** オリジナルのクラスローダー */
-    private ClassLoader _originalClassLoader = null;
-    /** テストで使用するクラスローダー */
-    private UnitClassLoader _unitClassLoader = null;
-
     /** S2JUnit4の内部的なテストコンテキスト */
     private InternalTestContext _testContext = null;
 
@@ -82,8 +76,6 @@ class TestContextStatement extends Statement {
      * テストコンテキストをセットアップします.
      */
     protected void setUpTestContext() {
-        setUpClassLoader();
-
         if (needsWarmDeploy()) {
             S2ContainerFactory.configure("warmdeploy.dicon");
         }
@@ -100,32 +92,6 @@ class TestContextStatement extends Statement {
         }
 
         bindTestContext(_testClass);
-    }
-
-    /**
-     * UnitClassLoaderを構築する.
-     */
-    protected void setUpClassLoader() {
-        _originalClassLoader = getOriginalClassLoader();
-        _unitClassLoader = new UnitClassLoader(_originalClassLoader);
-        Thread.currentThread().setContextClassLoader(_unitClassLoader);
-    }
-
-    /**
-     * オリジナルのクラスローダーを返します.
-     *
-     * @return オリジナルのクラスローダー
-     */
-    protected ClassLoader getOriginalClassLoader() {
-        S2Container container =
-                S2ContainerFactory.getConfigurationContainer();
-        if (container == null) {
-            ;
-        } else if (container.hasComponentDef(ClassLoader.class)) {
-            return ClassLoader.class.cast(
-                    container.getComponent(ClassLoader.class));
-        }
-        return Thread.currentThread().getContextClassLoader();
     }
 
     /**
@@ -230,15 +196,5 @@ class TestContextStatement extends Statement {
         DisposableUtil.dispose();
         S2ContainerBehavior.setProvider(
                 new S2ContainerBehavior.DefaultProvider());
-        tearDownClassLoader();
-    }
-
-    /**
-     * 元のClassLoaderに戻す.
-     */
-    protected void tearDownClassLoader() {
-        Thread.currentThread().setContextClassLoader(_originalClassLoader);
-        _unitClassLoader = null;
-        _originalClassLoader = null;
     }
 }
