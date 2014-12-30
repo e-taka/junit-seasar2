@@ -2,7 +2,6 @@ package org.seasar.framework.unit;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
@@ -40,12 +39,14 @@ class TestContextRule extends Statement {
 
     /** テストクラスのイントロスペクター */
     private final S2TestIntrospector _introspector;
+
     /** オリジナルのクラスローダー */
-    private ClassLoader _originalClassLoader;
+    private ClassLoader _originalClassLoader = null;
     /** テストで使用するクラスローダー */
-    private UnitClassLoader _unitClassLoader;
+    private UnitClassLoader _unitClassLoader = null;
+
     /** S2JUnit4の内部的なテストコンテキスト */
-    private InternalTestContext _testContext;
+    private InternalTestContext _testContext = null;
 
     /**
      * {@link InternalTestContext} を作成、削除する statement を作成する.
@@ -79,25 +80,15 @@ class TestContextRule extends Statement {
 
     /**
      * テストコンテキストをセットアップします.
-     *
-     * @throws Throwable
-     *             何らかの例外またはエラーが起きた場合
      */
-    protected void setUpTestContext() throws Throwable {
-        _originalClassLoader = getOriginalClassLoader();
-        _unitClassLoader = new UnitClassLoader(_originalClassLoader);
-        Thread.currentThread().setContextClassLoader(_unitClassLoader);
+    protected void setUpTestContext() {
+        setUpClassLoader();
+
         if (needsWarmDeploy()) {
             S2ContainerFactory.configure("warmdeploy.dicon");
         }
 
-        S2Container container = createRootContainer();
-        SingletonS2ContainerFactory.setContainer(container);
-
-        _testContext =
-                InternalTestContext.class.cast(
-                        container.getComponent(InternalTestContext.class));
-        _testContext.setTestClass(_testClass);
+        _testContext = createTestContext(_testClass);
         _testContext.setTestMethod(_method);
 
         if (_testContext.hasComponentDef(NamingConvention.class)) {
@@ -108,8 +99,82 @@ class TestContextRule extends Statement {
             _testContext.setNamingConvention(namingConvention);
         }
 
-        TestContextRepository.put(_testContext);
         bindTestContext(_testClass);
+    }
+
+    /**
+     * UnitClassLoaderを構築する.
+     */
+    protected void setUpClassLoader() {
+        _originalClassLoader = getOriginalClassLoader();
+        _unitClassLoader = new UnitClassLoader(_originalClassLoader);
+        Thread.currentThread().setContextClassLoader(_unitClassLoader);
+    }
+
+    /**
+     * オリジナルのクラスローダーを返します.
+     *
+     * @return オリジナルのクラスローダー
+     */
+    protected ClassLoader getOriginalClassLoader() {
+        S2Container container =
+                S2ContainerFactory.getConfigurationContainer();
+        if (container == null) {
+            ;
+        } else if (container.hasComponentDef(ClassLoader.class)) {
+            return ClassLoader.class.cast(
+                    container.getComponent(ClassLoader.class));
+        }
+        return Thread.currentThread().getContextClassLoader();
+    }
+
+    /**
+     * {@link InternalTestContext} を構築する.
+     *
+     * @param testClass テストクラス
+     * @return テストコンテキスト
+     */
+    protected InternalTestContext createTestContext(final Class<?> testClass) {
+        S2Container container = createRootContainer();
+
+        _testContext =
+                InternalTestContext.class.cast(
+                        container.getComponent(InternalTestContext.class));
+        _testContext.setTestClass(testClass);
+        TestContextRepository.put(_testContext);
+
+        return _testContext;
+    }
+
+    /**
+     * ルートのコンテナを返します.
+     *
+     * @return ルートのコンテナ
+     */
+    protected S2Container createRootContainer() {
+        S2Container container = null;
+        String rootDicon = _introspector.getRootDicon(_testClass, _method);
+        if (StringUtil.isEmpty(rootDicon)) {
+            container = S2ContainerFactory.create(_s2junit4Path);
+        } else {
+            container = S2ContainerFactory.create(rootDicon);
+            S2ContainerFactory.include(container, _s2junit4Path);
+        }
+        SingletonS2ContainerFactory.setContainer(container);
+        return container;
+    }
+
+    /**
+     * WARM deployが必要とされる場合{@code true}を返します.
+     *
+     * @return WARM deployが必要とされる場合{@code true}、そうでない場合{@code false}
+     */
+    protected boolean needsWarmDeploy() {
+        return _introspector.needsWarmDeploy(_testClass, _method)
+                && !ResourceUtil.isExist("s2container.dicon")
+                && ResourceUtil.isExist("convention.dicon")
+                && ResourceUtil.isExist("creator.dicon")
+                && ResourceUtil.isExist("customizer.dicon");
     }
 
     /**
@@ -136,7 +201,7 @@ class TestContextRule extends Statement {
 
         for (final Field field : clazz.getDeclaredFields()) {
             final Class<?> fieldClass = field.getType();
-            if (!isAutoBindable(field)) {
+            if (!BindUtils.isAutoBindable(field)) {
                 continue;
             }
             if (!fieldClass.isAssignableFrom(_testContext.getClass())) {
@@ -150,96 +215,30 @@ class TestContextRule extends Statement {
             if (ReflectionUtil.getValue(field, _test) != null) {
                 continue;
             }
-            bindField(field, _testContext);
+            ReflectionUtil.setValue(field, _test, _testContext);
         }
 
         bindTestContext(clazz.getSuperclass());
     }
 
     /**
-     * オリジナルのクラスローダーを返します.
-     *
-     * @return オリジナルのクラスローダー
-     */
-    protected ClassLoader getOriginalClassLoader() {
-        S2Container configurationContainer =
-                S2ContainerFactory.getConfigurationContainer();
-        if (configurationContainer != null
-                && configurationContainer.hasComponentDef(ClassLoader.class)) {
-            return ClassLoader.class.cast(configurationContainer
-                    .getComponent(ClassLoader.class));
-        }
-        return Thread.currentThread().getContextClassLoader();
-    }
-
-    /**
-     * ルートのコンテナを返します.
-     *
-     * @return ルートのコンテナ
-     */
-    protected S2Container createRootContainer() {
-        String rootDicon = _introspector.getRootDicon(_testClass, _method);
-        if (StringUtil.isEmpty(rootDicon)) {
-            return S2ContainerFactory.create(_s2junit4Path);
-        }
-        S2Container container = S2ContainerFactory.create(rootDicon);
-        S2ContainerFactory.include(container, _s2junit4Path);
-        return container;
-
-    }
-
-    /**
      * テストコンテキストを解放します.
-     *
-     * @throws Throwable
-     *             何らかの例外またはエラーが起きた場合
      */
-    protected void tearDownTestContext() throws Throwable {
+    protected void tearDownTestContext() {
         _testContext = null;
         TestContextRepository.remove();
         DisposableUtil.dispose();
         S2ContainerBehavior.setProvider(
                 new S2ContainerBehavior.DefaultProvider());
+        tearDownClassLoader();
+    }
+
+    /**
+     * 元のClassLoaderに戻す.
+     */
+    protected void tearDownClassLoader() {
         Thread.currentThread().setContextClassLoader(_originalClassLoader);
         _unitClassLoader = null;
         _originalClassLoader = null;
-    }
-
-    /**
-     * 自動フィールドバインディングが可能な場合<code>true</code>を返します.
-     *
-     * @param field
-     *            フィールド
-     * @return 自動フィールドバインディングが可能な場合<code>true</code>、そうでない場合<code>false</code>
-     */
-    protected boolean isAutoBindable(final Field field) {
-        final int modifiers = field.getModifiers();
-        return !Modifier.isStatic(modifiers) && !Modifier.isFinal(modifiers)
-                && !field.getType().isPrimitive();
-    }
-
-    /**
-     * 指定されたフィールドに指定された値をバインディングします.
-     *
-     * @param field
-     *            フィールド
-     * @param object
-     *            値
-     */
-    protected void bindField(final Field field, final Object object) {
-        ReflectionUtil.setValue(field, _test, object);
-    }
-
-    /**
-     * WARM deployが必要とされる場合{@code true}を返します.
-     *
-     * @return WARM deployが必要とされる場合{@code true}、そうでない場合{@code false}
-     */
-    protected boolean needsWarmDeploy() {
-        return _introspector.needsWarmDeploy(_testClass, _method)
-                && !ResourceUtil.isExist("s2container.dicon")
-                && ResourceUtil.isExist("convention.dicon")
-                && ResourceUtil.isExist("creator.dicon")
-                && ResourceUtil.isExist("customizer.dicon");
     }
 }

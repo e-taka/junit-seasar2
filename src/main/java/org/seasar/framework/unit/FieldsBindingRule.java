@@ -2,7 +2,6 @@ package org.seasar.framework.unit;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.List;
 
 import javax.ejb.EJB;
@@ -91,7 +90,7 @@ class FieldsBindingRule extends Statement {
      *            フィールド
      */
     private void bindField(final Field field) {
-        if (!isAutoBindable(field)) {
+        if (!BindUtils.isAutoBindable(field)) {
             return;
         }
 
@@ -119,40 +118,9 @@ class FieldsBindingRule extends Statement {
         }
 
         if (component != null) {
-            bindField(field, component);
+            ReflectionUtil.setValue(field, _test, component);
+            _boundFields.add(field);
         }
-    }
-
-    /**
-     * 指定されたフィールドに指定された値をバインディングします.
-     *
-     * @param field
-     *            フィールド
-     * @param object
-     *            値
-     */
-    private void bindField(final Field field, final Object object) {
-        ReflectionUtil.setValue(field, _test, object);
-        _boundFields.add(field);
-    }
-
-    /**
-     * 自動フィールドバインディングが可能な場合<code>true</code>を返します.
-     *
-     * @param field
-     *            フィールド
-     * @return 自動フィールドバインディングが可能な場合<code>true</code>、
-     *          そうでない場合<code>false</code>
-     */
-    protected boolean isAutoBindable(final Field field) {
-        final int modifiers = field.getModifiers();
-        if (Modifier.isStatic(modifiers)) {
-            return false;
-        }
-        if (Modifier.isFinal(modifiers)) {
-            return false;
-        }
-        return !field.getType().isPrimitive();
     }
 
     /**
