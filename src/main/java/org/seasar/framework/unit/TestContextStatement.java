@@ -15,18 +15,12 @@ import org.seasar.framework.convention.impl.NamingConventionImpl;
 import org.seasar.framework.unit.annotation.PublishedTestContext;
 import org.seasar.framework.util.DisposableUtil;
 import org.seasar.framework.util.ResourceUtil;
-import org.seasar.framework.util.StringUtil;
 import org.seasar.framework.util.tiger.ReflectionUtil;
 
 /**
  * テスト実行前後で、{@link InternalTestContext} を作成する、削除する.
  */
 class TestContextStatement extends Statement {
-    /** S2JUnit4のデフォルトの設定ファイルのパス */
-    protected static final String DEFAULT_S2JUNIT4_PATH = "s2junit4.dicon";
-    /** S2JUnit4の設定ファイルのパス */
-    protected static String _s2junit4Path = DEFAULT_S2JUNIT4_PATH;
-
     /** 元の statement */
     private final Statement _statement;
 
@@ -39,8 +33,6 @@ class TestContextStatement extends Statement {
 
     /** テストクラスのイントロスペクター */
     private final S2TestIntrospector _introspector;
-    /** S2JUnit4の内部的なテストコンテキスト */
-    private InternalTestContext _testContext = null;
 
     /**
      * {@link InternalTestContext} を作成、削除する statement を作成する.
@@ -64,7 +56,8 @@ class TestContextStatement extends Statement {
 
     @Override
     public void evaluate() throws Throwable {
-        setUpTestContext();
+        InternalTestContext testContext = setUpTestContext();
+        TestContextRepository.put(testContext);
         try {
             _statement.evaluate();
         } finally {
@@ -74,24 +67,28 @@ class TestContextStatement extends Statement {
 
     /**
      * テストコンテキストをセットアップします.
+     *
+     * @return テストコンテキスト
      */
-    protected void setUpTestContext() {
+    protected InternalTestContext setUpTestContext() {
         if (needsWarmDeploy()) {
             S2ContainerFactory.configure("warmdeploy.dicon");
         }
 
-        _testContext = createTestContext(_testClass);
-        _testContext.setTestMethod(_method);
+        InternalTestContext testContext = createTestContext(_testClass);
+        testContext.setTestMethod(_method);
 
-        if (_testContext.hasComponentDef(NamingConvention.class)) {
+        if (testContext.hasComponentDef(NamingConvention.class)) {
             ;
         } else if (isRegisterNamingConvention(_testClass, _method)) {
             NamingConvention namingConvention = new NamingConventionImpl();
-            _testContext.register(namingConvention);
-            _testContext.setNamingConvention(namingConvention);
+            testContext.register(namingConvention);
+            testContext.setNamingConvention(namingConvention);
         }
 
-        bindTestContext(_testClass);
+        bindTestContext(_testClass, testContext);
+
+        return testContext;
     }
 
     /**
@@ -101,33 +98,14 @@ class TestContextStatement extends Statement {
      * @return テストコンテキスト
      */
     protected InternalTestContext createTestContext(final Class<?> testClass) {
-        S2Container container = createRootContainer();
+        S2Container container = SingletonS2ContainerFactory.getContainer();
 
-        _testContext =
+        InternalTestContext testContext =
                 InternalTestContext.class.cast(
                         container.getComponent(InternalTestContext.class));
-        _testContext.setTestClass(testClass);
-        TestContextRepository.put(_testContext);
+        testContext.setTestClass(testClass);
 
-        return _testContext;
-    }
-
-    /**
-     * ルートのコンテナを返します.
-     *
-     * @return ルートのコンテナ
-     */
-    protected S2Container createRootContainer() {
-        S2Container container = null;
-        String rootDicon = _introspector.getRootDicon(_testClass, _method);
-        if (StringUtil.isEmpty(rootDicon)) {
-            container = S2ContainerFactory.create(_s2junit4Path);
-        } else {
-            container = S2ContainerFactory.create(rootDicon);
-            S2ContainerFactory.include(container, _s2junit4Path);
-        }
-        SingletonS2ContainerFactory.setContainer(container);
-        return container;
+        return testContext;
     }
 
     /**
@@ -159,8 +137,11 @@ class TestContextStatement extends Statement {
      * テストクラスのインスタンスにj {@link InternalTestContext} をバインディングする.
      *
      * @param clazz テストクラス
+     * @param testContext テストコンテキスト
      */
-    private void bindTestContext(final Class<?> clazz) {
+    private void bindTestContext(
+            final Class<?> clazz,
+            final InternalTestContext testContext) {
         if (Object.class.equals(clazz)) {
             return;
         }
@@ -170,7 +151,7 @@ class TestContextStatement extends Statement {
             if (!BindUtils.isAutoBindable(field)) {
                 continue;
             }
-            if (!fieldClass.isAssignableFrom(_testContext.getClass())) {
+            if (!fieldClass.isAssignableFrom(testContext.getClass())) {
                 continue;
             }
             if (!fieldClass.isAnnotationPresent(PublishedTestContext.class)) {
@@ -181,17 +162,16 @@ class TestContextStatement extends Statement {
             if (ReflectionUtil.getValue(field, _test) != null) {
                 continue;
             }
-            ReflectionUtil.setValue(field, _test, _testContext);
+            ReflectionUtil.setValue(field, _test, testContext);
         }
 
-        bindTestContext(clazz.getSuperclass());
+        bindTestContext(clazz.getSuperclass(), testContext);
     }
 
     /**
      * テストコンテキストを解放します.
      */
     protected void tearDownTestContext() {
-        _testContext = null;
         TestContextRepository.remove();
         DisposableUtil.dispose();
         S2ContainerBehavior.setProvider(

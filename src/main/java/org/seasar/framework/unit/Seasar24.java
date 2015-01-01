@@ -79,6 +79,7 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
         statement = withBefores(method, test, statement);
         statement = withAfters(method, test, statement);
         statement = withContext(method, test, statement);
+        statement = withRootContainer(method, test, statement);
         statement = withClassLoader(statement);
         statement = withRules(method, test, statement);
         return statement;
@@ -92,6 +93,21 @@ public class Seasar24 extends BlockJUnit4ClassRunner {
      */
     protected Statement withClassLoader(final Statement statement) {
         return new ClassLoaderStatement(statement);
+    }
+
+    /**
+     * ルートコンテナを作成する.
+     *
+     * @param method テストメソッド
+     * @param target テストクラスのインスタンス
+     * @param statement 元の statement
+     * @return ルートコンテナを作成する statement
+     */
+    protected Statement withRootContainer(
+            final FrameworkMethod method,
+            final Object target,
+            final Statement statement) {
+        return new RootContainerStatement(statement, getTestClass(), method);
     }
 
     /**
